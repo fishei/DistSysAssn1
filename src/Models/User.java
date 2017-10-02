@@ -2,10 +2,20 @@ package Models;
 
 public class User {
     private String userName;
-    private int userId;
+    private int id;
 
     public User(String userName, int userId){
         this.userName = userName;
-        this.userId = userId;
+        this.id = userId;
+    }
+
+    public String getUserName()
+    {
+        return userName;
+    }
+
+    public int getId()
+    {
+        return id;
     }
 }
