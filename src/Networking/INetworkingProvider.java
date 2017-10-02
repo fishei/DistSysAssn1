@@ -7,5 +7,5 @@ public interface INetworkingProvider
 {
     void sendMessage(TwitterMessage msg, int dest);
 
-    void listenForMessages(ConcurrentLinkedQueue queue);
+    void listenForMessages(ConcurrentLinkedQueue<TwitterMessage> queue);
 }

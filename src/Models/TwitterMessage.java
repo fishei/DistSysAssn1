@@ -8,5 +8,5 @@ public class TwitterMessage implements Serializable
 {
     public int originatorId;
     public ArrayList<TwitterEvent> eventList;
-    public HashMap<Integer, Integer> siteClocks;
+    public HashMap<Integer, HashMap<Integer,Integer>> siteClocks;
 }

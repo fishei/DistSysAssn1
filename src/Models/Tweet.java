@@ -8,11 +8,11 @@ public class Tweet extends TwitterEvent
     private String text;
     private DateTime utcTimeStamp;
 
-    public Tweet(int originatorId, int logicalTimeStamp, String text)
+    public Tweet(int originatorId, int logicalTimeStamp, String text, DateTime utcTimeStamp)
     {
         super(originatorId, logicalTimeStamp);
         this.text = text;
-        this.utcTimeStamp = new DateTime(DateTimeZone.UTC);
+        this.utcTimeStamp = utcTimeStamp;
     }
 
     public String getText()

@@ -1,6 +1,8 @@
 package Models;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 public interface ISiteState
 {
@@ -17,4 +19,9 @@ public interface ISiteState
     boolean isBlockedBy(int userId, int blockerId);
 
     Collection<TwitterEvent> getPartialLog();
+
+    /* updates the clocks at the current site based on clocks received in a message from site
+       with clockSenderId */
+    void updateClocks(int clockSenderId, HashMap<Integer, HashMap<Integer,Integer>> clocksReceived);
+
 }
