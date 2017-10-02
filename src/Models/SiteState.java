@@ -60,4 +60,5 @@ public class SiteState implements ISiteState
     {
         return new HashSet<TwitterEvent>(partialLog);
     }
+
 }
