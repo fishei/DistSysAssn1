@@ -1,0 +1,6 @@
+tasks.xml
+gradle.xml
+workspace.xml
+.idea/libraries/**/*.xml
+out/production
+.idea/workspace.xml
