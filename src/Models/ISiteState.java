@@ -24,4 +24,11 @@ public interface ISiteState
        with clockSenderId */
     void updateClocks(int clockSenderId, HashMap<Integer, HashMap<Integer,Integer>> clocksReceived);
 
+    void incrementLocalClock();
+
+    int getLocalClock();
+
+    Map<Integer, TwitterMessage> generateMessages();
+
+    int getUserId();
 }

@@ -7,11 +7,11 @@ import FileManagement.IFileManager;
 public class SiteState implements ISiteState
 {
     private User currentUser;
-    private int localClock;
     private HashMap<Integer, HashMap<Integer,Integer>> siteClocks;
     private HashMap<Integer, HashSet<Integer>> blockList;
     private HashSet<Tweet> tweetSet;
     private HashSet<TwitterEvent> partialLog;
+    private HashMap<Integer,HashMap<Integer, BlockEvent>> partialBlockLog;
     private IFileManager fileManager;
 
     public SiteState(IFileManager fileManager)
@@ -33,7 +33,13 @@ public class SiteState implements ISiteState
         }
         this.tweetSet = new HashSet<>(fileManager.loadTweets());
         this.currentUser = fileManager.loadCurrentUser();
-        this.localClock = siteClocks.get(currentUser.getId()).get(currentUser.getId());
+        for(TwitterEvent e : partialLog)
+        {
+            if(!hasEveryoneRec(e) && e instanceof BlockEvent)
+            {
+                updatePartialBlockLog((BlockEvent) e);
+            }
+        }
     }
 
     public boolean isBlockedBy(int userId, int blockerId)
@@ -52,16 +58,13 @@ public class SiteState implements ISiteState
 
     private void processBlockEvent(BlockEvent e)
     {
-        if(!hasRec(e,currentUser.getId()))
+        if(e.getIsBlocking())
         {
-            if(e.getIsBlocking())
-            {
-                blockUser(e.getOriginatorId(), e.getIdToBlock());
-            }
-            else
-            {
-                unblockUser(e.getOriginatorId(), e.getIdToBlock());
-            }
+            blockUser(e.getOriginatorId(), e.getIdToBlock());
+        }
+        else
+        {
+            unblockUser(e.getOriginatorId(), e.getIdToBlock());
         }
     }
 
@@ -85,6 +88,10 @@ public class SiteState implements ISiteState
 
     public void onTwitterEvent(TwitterEvent e)
     {
+        if(hasRec(e,currentUser.getId()))
+        {
+            return;
+        }
         if(!hasEveryoneRec(e))
         {
             partialLog.add(e);
@@ -106,7 +113,22 @@ public class SiteState implements ISiteState
 
     public Collection<Tweet> getTweets()
     {
-        return null;
+        ArrayList<Tweet> tweets = new ArrayList<Tweet>();
+        for(Tweet tweet : tweetSet)
+        {
+            if(isBlockedBy(currentUser.getId(), tweet.getOriginatorId()))
+            {
+                tweets.add(tweet);
+            }
+        }
+        tweets.sort(new Comparator<Tweet>(){
+            @Override
+            public int compare(Tweet o1, Tweet o2)
+            {
+                return o1.getUtcTimeStamp().compareTo(o2.getUtcTimeStamp());
+            }
+        } );
+        return tweets;
     }
 
     public Collection<TwitterEvent> getPartialLog()
@@ -134,13 +156,23 @@ public class SiteState implements ISiteState
         return true;
     }
 
-    private void updatePartialLog()
+    private void cleanPartialLog()
     {
         for(TwitterEvent e : partialLog)
         {
             if(hasEveryoneRec(e))
             {
                 partialLog.remove(e);
+            }
+        }
+        for(HashMap.Entry<Integer,HashMap<Integer,BlockEvent>> subSet : partialBlockLog.entrySet())
+        {
+            for(BlockEvent e : subSet.getValue().values())
+            {
+                if(hasEveryoneRec(e))
+                {
+                    subSet.getValue().remove(e.getIdToBlock());
+                }
             }
         }
     }
@@ -152,5 +184,94 @@ public class SiteState implements ISiteState
         {
             setMaxRow(siteClocks.get(entry.getKey()), clocksReceived.get(entry.getKey()));
         }
+        cleanPartialLog();
+    }
+
+    public int getLocalClock()
+    {
+        return siteClocks.get(currentUser.getId()).get(currentUser.getId());
+    }
+
+    public void incrementLocalClock()
+    {
+        siteClocks.get(currentUser.getId()).put(currentUser.getId(), getLocalClock() + 1);
+    }
+
+    private Collection<TwitterEvent> getEventsForMessage(int siteId)
+    {
+        if(isBlockedBy(siteId, currentUser.getId()))
+        {
+            return null;
+        }
+        ArrayList<TwitterEvent> ret = new ArrayList<>();
+        for(TwitterEvent e : partialLog)
+        {
+            if(includeInMessage(e,siteId))
+            {
+                ret.add(e);
+            }
+        }
+        return ret.isEmpty() ? null : ret;
+    }
+
+    private void updatePartialBlockLog(BlockEvent e)
+    {
+        HashMap<Integer,BlockEvent> subLog = partialBlockLog.get(e.getOriginatorId());
+        if(subLog == null)
+        {
+            partialBlockLog.put(e.getOriginatorId(), new HashMap<Integer,BlockEvent>());
+        }
+        BlockEvent prevEvent = subLog.get(e.getIdToBlock());
+        if(prevEvent == null || prevEvent.getLogicalTimeStamp() < e.getLogicalTimeStamp())
+        {
+            subLog.put(e.getIdToBlock(), e);
+        }
+    }
+
+    private BlockEvent getPartialBlockEntry(int blockerId, int blockedId)
+    {
+        if(partialBlockLog.get(blockerId) == null)
+        {
+            return null;
+        }
+        return(partialBlockLog.get(blockerId).get(blockedId));
+    }
+
+    private boolean includeInMessage(TwitterEvent e, int dest)
+    {
+        if(hasRec(e, dest))
+        {
+            return false;
+        }
+        if(e instanceof BlockEvent)
+        {
+            return true;
+        }
+        BlockEvent b = getPartialBlockEntry(e.getOriginatorId(),dest);
+        return (!b.getIsBlocking() || b.getLogicalTimeStamp() < e.getLogicalTimeStamp());
+    }
+
+    public int getUserId()
+    {
+        return currentUser.getId();
+    }
+
+    public Map<Integer,TwitterMessage> generateMessages()
+    {
+        HashMap<Integer,TwitterMessage> messages = new HashMap<>();
+        HashMap<Integer,HashMap<Integer,Integer>> clocks = (HashMap<Integer,HashMap<Integer,Integer>>) siteClocks.clone();
+        for(int i : siteClocks.keySet())
+        {
+            Collection<TwitterEvent> events = getEventsForMessage(i);
+            if(events !=null)
+            {
+                TwitterMessage msg = new TwitterMessage();
+                msg.eventList = events;
+                msg.siteClocks = clocks;
+                msg.originatorId = getUserId();
+                messages.put(i,msg);
+            }
+        }
+        return messages;
     }
 }

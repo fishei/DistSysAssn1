@@ -4,3 +4,4 @@ workspace.xml
 .idea/libraries/**/*.xml
 out/production
 .idea/workspace.xml
+out

@@ -3,6 +3,9 @@ package Control;
 import Networking.INetworkingProvider;
 import Models.*;
 import FileManagement.IFileManager;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -21,6 +24,46 @@ public class Controller
         this.messageQueue = new ConcurrentLinkedQueue<>();
         this.commandQueue = new ConcurrentLinkedQueue<>();
         networkingProvider.listenForMessages(messageQueue);
+    }
+
+    private void processTweet(String text)
+    {
+        siteState.incrementLocalClock();
+        Tweet tweet = new Tweet(
+                 siteState.getUserId()
+                ,siteState.getLocalClock()
+                ,text
+                , DateTime.now(DateTimeZone.UTC)
+        );
+        siteState.onTwitterEvent(tweet);
+        sendMessages();
+    }
+
+    private void processBlockCommand(int userId, boolean block) {
+        siteState.incrementLocalClock();
+        BlockEvent e = new BlockEvent(
+                 siteState.getUserId()
+                ,siteState.getLocalClock()
+                ,userId
+                , block
+        );
+        siteState.onTwitterEvent(e);
+    }
+
+    private void viewTweets()
+    {
+        for(Tweet tweet : siteState.getTweets())
+        {
+            System.out.println(tweet.getText());
+        }
+    }
+
+    private void sendMessages()
+    {
+        for(Map.Entry<Integer,TwitterMessage> entry : siteState.generateMessages().entrySet())
+        {
+            networkingProvider.sendMessage(entry.getValue(),entry.getKey());
+        }
     }
 
     protected void processCommand(TwitterCommand command)
