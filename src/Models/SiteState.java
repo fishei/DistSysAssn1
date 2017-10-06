@@ -195,6 +195,7 @@ public class SiteState implements ISiteState
     public void incrementLocalClock()
     {
         siteClocks.get(currentUser.getId()).put(currentUser.getId(), getLocalClock() + 1);
+        fileManager.loadClocks();
     }
 
     private Collection<TwitterEvent> getEventsForMessage(int siteId)

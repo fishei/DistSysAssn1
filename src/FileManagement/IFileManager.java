@@ -43,4 +43,6 @@ public interface IFileManager
 
     /* load list of userIds and the corresponding user objects */
     Map<Integer, User> loadUsers();
+
+    void updateClocks(Map<Integer,Map<Integer,Integer>> clocks);
 }
