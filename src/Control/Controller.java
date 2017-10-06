@@ -7,6 +7,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -16,6 +17,7 @@ public class Controller
     private ISiteState siteState;
     private ConcurrentLinkedQueue<TwitterMessage> messageQueue;
     private ConcurrentLinkedQueue<TwitterCommand> commandQueue;
+    private HashMap<String, User> userNames;
 
     public Controller(INetworkingProvider networkingProvider, IFileManager fileManager)
     {
@@ -24,6 +26,11 @@ public class Controller
         this.messageQueue = new ConcurrentLinkedQueue<>();
         this.commandQueue = new ConcurrentLinkedQueue<>();
         networkingProvider.listenForMessages(messageQueue);
+        this.userNames = new HashMap<>();
+        for(User user : fileManager.loadUsers().values())
+        {
+            this.userNames.put(user.getUserName(), user);
+        }
     }
 
     private void processTweet(String text)
@@ -39,13 +46,18 @@ public class Controller
         sendMessages();
     }
 
-    private void processBlockCommand(int userId, boolean block) {
+    private void processCommand(BlockCommand b) {
+        if(!userNames.containsKey(b.getUserName()))
+        {
+            System.out.println("Invalid username");
+            return;
+        }
         siteState.incrementLocalClock();
         BlockEvent e = new BlockEvent(
                  siteState.getUserId()
                 ,siteState.getLocalClock()
-                ,userId
-                , block
+                ,userNames.get(b.getUserName()).getId()
+                ,b.isBlockOrUnblock()
         );
         siteState.onTwitterEvent(e);
     }
@@ -68,7 +80,7 @@ public class Controller
 
     protected void processCommand(TwitterCommand command)
     {
-
+        System.out.println("Invalid command");
     }
 
     protected void processMessage(TwitterMessage message)
