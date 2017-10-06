@@ -156,6 +156,16 @@ public class SiteState implements ISiteState
         return true;
     }
 
+    private boolean tryRemovePartialBlockLogEntry(BlockEvent e)
+    {
+        if(e.equals(getPartialBlockEntry(e.getOriginatorId(),e.getIdToBlock())))
+        {
+            partialBlockLog.get(e.getOriginatorId()).remove(e.getIdToBlock());
+            return true;
+        }
+        return false;
+    }
+
     private void cleanPartialLog()
     {
         for(TwitterEvent e : partialLog)
@@ -163,15 +173,9 @@ public class SiteState implements ISiteState
             if(hasEveryoneRec(e))
             {
                 partialLog.remove(e);
-            }
-        }
-        for(HashMap.Entry<Integer,HashMap<Integer,BlockEvent>> subSet : partialBlockLog.entrySet())
-        {
-            for(BlockEvent e : subSet.getValue().values())
-            {
-                if(hasEveryoneRec(e))
+                if(e instanceof BlockEvent)
                 {
-                    subSet.getValue().remove(e.getIdToBlock());
+                    tryRemovePartialBlockLogEntry((BlockEvent) e);
                 }
             }
         }
@@ -274,5 +278,12 @@ public class SiteState implements ISiteState
             }
         }
         return messages;
+    }
+
+    public void saveToDisk()
+    {
+        fileManager.updatePartialLog(this.partialLog);
+        fileManager.updateClocks(this.siteClocks);
+        fileManager.updateBlockList(this.blockList);
     }
 }

@@ -31,4 +31,6 @@ public interface ISiteState
     Map<Integer, TwitterMessage> generateMessages();
 
     int getUserId();
+
+    void saveToDisk();
 }

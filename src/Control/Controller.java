@@ -43,6 +43,7 @@ public class Controller
                 , DateTime.now(DateTimeZone.UTC)
         );
         siteState.onTwitterEvent(tweet);
+        siteState.saveToDisk();
         sendMessages();
     }
 
@@ -60,6 +61,7 @@ public class Controller
                 ,b.isBlockOrUnblock()
         );
         siteState.onTwitterEvent(e);
+        siteState.saveToDisk();
     }
 
     private void viewTweets()
@@ -90,6 +92,7 @@ public class Controller
             siteState.onTwitterEvent(e);
         }
         siteState.updateClocks(message.originatorId, message.siteClocks);
+        siteState.saveToDisk();
     }
 
     public void run()
@@ -100,7 +103,7 @@ public class Controller
             {
                 processMessage(messageQueue.poll());
             }
-            else
+            else if(!messageQueue.isEmpty())
             {
                 processCommand(commandQueue.poll());
             }

@@ -8,9 +8,7 @@ package FileManagement;
 import Models.*;
 
 import java.net.InetAddress;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public interface IFileManager
 {
@@ -33,7 +31,7 @@ public interface IFileManager
     void addTweet(Tweet tweet);
 
     /* erases old blockList if present, saves newBlockList to file */
-    void updateBlockList(Map<Integer, Collection<Integer>> newBlockList);
+    void updateBlockList(HashMap<Integer, HashSet<Integer>> newBlockList);
 
     /* loads the current user from config file */
     User loadCurrentUser();
@@ -44,5 +42,5 @@ public interface IFileManager
     /* load list of userIds and the corresponding user objects */
     Map<Integer, User> loadUsers();
 
-    void updateClocks(Map<Integer,Map<Integer,Integer>> clocks);
+    void updateClocks(HashMap<Integer,HashMap<Integer,Integer>> clocks);
 }
