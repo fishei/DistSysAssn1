@@ -50,7 +50,7 @@ public class Controller
     private void processCommand(BlockCommand b) {
         if(!userNames.containsKey(b.getUserName()))
         {
-            System.out.println("Invalid username");
+            System.out.println("Invalid username: " + b.getUserName());
             return;
         }
         siteState.incrementLocalClock();
