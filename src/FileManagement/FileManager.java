@@ -21,6 +21,13 @@ public class FileManager implements IFileManager
     public static final String PlFile = "partialLog.txt";
     public static final String UserFile =  "users.txt";
 
+    private int currentUserId;
+
+    public FileManager(int currentUserId)
+    {
+        this.currentUserId = currentUserId;
+    }
+
     BufferedReader r = null;
     FileWriter w = null;
 
@@ -249,6 +256,7 @@ public class FileManager implements IFileManager
         else
         {
             throw new Exception("Invalid event type: " + eventArray[2]);
+
         }
     }
 
