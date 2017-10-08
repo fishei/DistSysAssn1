@@ -12,8 +12,6 @@ import Models.TwitterEvent;
 import Models.User;
 import org.joda.time.DateTime;
 
-import javax.jws.soap.SOAPBinding;
-
 public class FileManager implements IFileManager
 {
     int n;
@@ -25,6 +23,7 @@ public class FileManager implements IFileManager
     public static final String UserFile =  "users.txt";
 
     private int currentUserId;
+    private Map<Integer, User> UserList = null;
 
     public FileManager(int currentUserId)
     {
