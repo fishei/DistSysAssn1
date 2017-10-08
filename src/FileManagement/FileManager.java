@@ -301,4 +301,85 @@ public class FileManager implements IFileManager
 
         }
     }
+
+    public User loadCurrentUser(){
+        Map<Integer, User> UL = getUserList();
+        return (UL.get(currentUserId));
+    }
+
+    @Override
+    public Map<Integer, User> loadUsers() {
+        Map<Integer, User> result = new HashMap<Integer, User>();
+
+        try {
+            r = new BufferedReader(new FileReader(UserFile));
+            String userData = "";
+            while ((userData = r.readLine()) != null){
+                String[] CurrData = userData.split(",");
+                int currID = Integer.parseInt(CurrData[0]);
+                User currUser = new User(CurrData[1], currID);
+
+                //is this right?
+                result.put(currID, currUser);
+            }
+        }
+        catch (FileNotFoundException e){
+            //create file
+        }
+        catch (IOException e){
+            //error handaling
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if(r != null){
+            try{
+                r.close();
+            }
+            catch (IOException e){
+                //error hanaling
+            }
+        }
+
+        UserList = result;
+        return result;
+    }
+
+    @Override
+    public Map<Integer, InetAddress> loadAddresses() {
+        Map<Integer, InetAddress> result = new HashMap<Integer, InetAddress>();
+
+        try {
+            r = new BufferedReader(new FileReader(UserFile));
+            String userData = "";
+            while ((userData = r.readLine()) != null){
+                String[] CurrData = userData.split(",");
+                int currID = Integer.parseInt(CurrData[0]);
+                InetAddress currAdd = InetAddress.getByName(CurrData[2]);
+
+                result.put(currID, currAdd);
+            }
+        }
+        catch (FileNotFoundException e){
+            //create file
+        }
+        catch (IOException e){
+            //error handaling
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if(r != null){
+            try{
+                r.close();
+            }
+            catch (IOException e){
+                //error hanaling
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public void updateClocks(HashMap<Integer, HashMap<Integer, Integer>> clocks) {
+        
+    }
 }
