@@ -18,6 +18,7 @@ public class Controller
     private ConcurrentLinkedQueue<TwitterMessage> messageQueue;
     private ConcurrentLinkedQueue<TwitterCommand> commandQueue;
     private HashMap<String, User> userNames;
+    private HashMap<Integer, User> userIds;
 
     public Controller(INetworkingProvider networkingProvider, IFileManager fileManager)
     {
@@ -31,6 +32,7 @@ public class Controller
         {
             this.userNames.put(user.getUserName(), user);
         }
+        this.userIds = new HashMap<Integer,User>(fileManager.loadUsers());
     }
 
     private void processTweet(String text)
@@ -63,12 +65,22 @@ public class Controller
         siteState.onTwitterEvent(e);
         siteState.saveToDisk();
     }
+    private void processCommand(ViewCommand v)
+    {
+        viewTweets();
+    }
 
+    private String tweetToString(Tweet tweet)
+    {
+        String userName = userIds.get(tweet.getOriginatorId()).getUserName();
+        String timeStampString = tweet.getUtcTimeStamp().toString("dd/MM/yy hh:mm:ss");
+        return userName + " at " + timeStampString + ": " + tweet.getText();
+    }
     private void viewTweets()
     {
         for(Tweet tweet : siteState.getTweets())
         {
-            System.out.println(tweet.getText());
+            System.out.println(tweetToString(tweet));
         }
     }
 
