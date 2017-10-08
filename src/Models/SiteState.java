@@ -54,6 +54,7 @@ public class SiteState implements ISiteState
     private void processTweet(Tweet tweet)
     {
         tweetSet.add(tweet);
+        fileManager.addTweet(tweet);
     }
 
     private void processBlockEvent(BlockEvent e)

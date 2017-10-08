@@ -1,5 +1,6 @@
 package FileManagement;
 
+import Models.BlockEvent;
 import Models.Tweet;
 
 import java.io.*;
@@ -210,6 +211,44 @@ public class FileManager implements IFileManager
         }
         catch (IOException e){
 
+        }
+    }
+
+    private TwitterEvent parseTwitterEvent(String eventString) throws Exception
+    {
+        String[] eventArray = eventString.split(",");
+        int originatorId = Integer.parseInt(eventArray[0]);
+        int logicalTimeStamp = Integer.parseInt(eventArray[1]);
+        if(eventArray[2].equals("tweet"))
+        {
+            return new Tweet(
+                     originatorId
+                    ,logicalTimeStamp
+                    ,eventArray[3]
+                    ,DateTime.parse(eventArray[4])
+            );
+        }
+        else if(eventArray[2].equals("block"))
+        {
+            return new BlockEvent(
+                     originatorId
+                    ,logicalTimeStamp
+                    ,Integer.parseInt(eventArray[3])
+                    ,true
+            );
+        }
+        else if(eventArray[2].equals("unblock"))
+        {
+            return new BlockEvent(
+                    originatorId
+                    ,logicalTimeStamp
+                    ,Integer.parseInt(eventArray[3])
+                    ,false
+            );
+        }
+        else
+        {
+            throw new Exception("Invalid event type: " + eventArray[2]);
         }
     }
 
