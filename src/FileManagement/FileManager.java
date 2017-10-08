@@ -9,7 +9,10 @@ import java.nio.file.Files;
 import java.util.*;
 
 import Models.TwitterEvent;
+import Models.User;
 import org.joda.time.DateTime;
+
+import javax.jws.soap.SOAPBinding;
 
 public class FileManager implements IFileManager
 {
@@ -31,16 +34,23 @@ public class FileManager implements IFileManager
     BufferedReader r = null;
     FileWriter w = null;
 
+    private Map<Integer, User> getUserList(){
+        if(UserList == null){
+            loadUsers();
+        }
+        return  UserList;
+    }
+
     public Collection<Tweet> loadTweets() {
-        Collection<Tweet> result = null;
+        Collection<Tweet> result = new ArrayList<Tweet>();
 
         try {
             r = new BufferedReader(new FileReader(tweetFile));
             String userTweets = "";
-            int m = 0;
             while ((userTweets = r.readLine()) != null){
                 String[] tweetsData = userTweets.split(";");
-                for(int i =0; i< tweetsData.length; i++){
+                int m = Integer.parseInt(tweetsData[0]);
+                for(int i =1; i< tweetsData.length; i++){
                     String[] tweetData = tweetsData[i].split(",");
                     int lTS = Integer.parseInt(tweetData[0]);
                     DateTime TS = new DateTime(tweetData[2]);
@@ -48,7 +58,6 @@ public class FileManager implements IFileManager
                     Tweet nT = new Tweet(m, lTS, tweetData[1], TS);
                     result.add(nT);
                 }
-                m++;
             }
         }
         catch (FileNotFoundException e){
@@ -70,25 +79,32 @@ public class FileManager implements IFileManager
 
     @Override
     public Map<Integer, Map<Integer, Integer>> loadClocks() {
-        Map<Integer, Map<Integer, Integer>> result =  null;
+        Map<Integer, Map<Integer, Integer>> result = new HashMap<Integer, Map<Integer, Integer>>();
+        Map<Integer, User> UL = getUserList();
 
         try {
             r = new BufferedReader(new FileReader(ClockFile));
             String row = "";
             int i = 0;
             while ((row = r.readLine()) != null){
-                Map <Integer, Integer> subMap = null;
+                Map <Integer, Integer> subMap = new HashMap<Integer, Integer>();
                 String[] timeStamps = row.split(";");
                 for(int j =0; j < n; j++){
                     int timestamp = Integer.parseInt(timeStamps[j]);
-                    subMap.put(j, timestamp);
+                    subMap.put(UL.get(j).getId(), timestamp);
                 }
-                result.put(i, subMap);
+                result.put(UL.get(i).getId(), subMap);
                 i++;
             }
         }
         catch (FileNotFoundException e){
-            //create file
+            for(int i = 0; i < n; i++){
+                Map <Integer, Integer> subMap = new HashMap<Integer, Integer>();
+                for(int j = 0; j < n; j++){
+                    subMap.put(UL.get(j).getId(), 0);
+                }
+                result.put(UL.get(i).getId(), subMap);
+            }
         }
         catch (IOException e){
             //error handaling
@@ -106,26 +122,30 @@ public class FileManager implements IFileManager
 
     @Override
     public Map<Integer, Set<Integer>> loadBlockList() {
-        Map<Integer, Set<Integer>> result = null;
+        Map<Integer, Set<Integer>> result = new HashMap<Integer, Set<Integer>>();
+        Map<Integer, User> UL = getUserList();
 
         try {
             r = new BufferedReader(new FileReader(BlockFile));
             String uBlock = "";
             int i = 0;
             while ((uBlock = r.readLine()) != null){
-                Set <Integer> BlockList = null;
+                Set <Integer> BlockList = new HashSet<Integer>();
 
                 String[] Blocks = uBlock.split(";");
                 for(int j = 0; j < Blocks.length ; j++){
                     int Block = Integer.parseInt(Blocks[j]);
                     BlockList.add(Block);
                 }
-                result.put(i, BlockList);
+                result.put(UL.get(i).getId(), BlockList);
                 i++;
             }
         }
         catch (FileNotFoundException e){
-            //create file
+            for(int i = 0; i < n; i++){
+                Set<Integer> temp = new HashSet<Integer>();
+                result.put(UL.get(i).getId(), temp);
+            }
         }
         catch (IOException e){
             //error handaling
@@ -143,7 +163,7 @@ public class FileManager implements IFileManager
 
     @Override
     public Collection<TwitterEvent> loadPartialLog() {
-        Collection<TwitterEvent> result = null;
+        Collection<TwitterEvent> result = new ArrayList<TwitterEvent>();
 
         try {
             r = new BufferedReader(new FileReader(PlFile));
@@ -152,9 +172,7 @@ public class FileManager implements IFileManager
             while ((userEvents = r.readLine()) != null){
                 String[] EventsData = userEvents.split(";");
                 for(int i =0; i< EventsData.length; i++){
-                    int lTS = Integer.parseInt(EventsData[i]);
-
-                    TwitterEvent nE = new TwitterEvent(m, lTS);
+                    TwitterEvent nE = parseTwitterEvent(EventsData[i]);
                     result.add(nE);
                 }
                 m++;
@@ -165,6 +183,8 @@ public class FileManager implements IFileManager
         }
         catch (IOException e){
             //error handaling
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         if(r != null){
             try{
