@@ -14,11 +14,11 @@ public class FileManager implements IFileManager
 {
     int n;
 
-    String tweetFile;
-    String ClockFile;
-    String BlockFile;
-    String PlFile;
-    String UserFile;
+    public static final String tweetFile = "tweets.txt";
+    public static final String ClockFile = "siteClocks.txt";
+    public static final String BlockFile = "blockList.txt";
+    public static final String PlFile = "partialLog.txt";
+    public static final String UserFile =  "users.txt";
 
     BufferedReader r = null;
     FileWriter w = null;
