@@ -16,11 +16,12 @@ public class FileManager implements IFileManager
 {
     int n;
 
-    public static final String tweetFile = "tweets.txt";
-    public static final String ClockFile = "siteClocks.txt";
-    public static final String BlockFile = "blockList.txt";
-    public static final String PlFile = "partialLog.txt";
-    public static final String UserFile =  "users.txt";
+    public static final String fileDirectory = "../../../data/";
+    public static final String tweetFile = fileDirectory + "tweets.txt";
+    public static final String ClockFile = fileDirectory + "siteClocks.txt";
+    public static final String BlockFile = fileDirectory + "blockList.txt";
+    public static final String PlFile = fileDirectory + "partialLog.txt";
+    public static final String UserFile =  fileDirectory + "users.txt";
 
     private int currentUserId;
     private Map<Integer, User> UserList = null;

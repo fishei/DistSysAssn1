@@ -33,6 +33,7 @@ public class SiteState implements ISiteState
         }
         this.tweetSet = new HashSet<>(fileManager.loadTweets());
         this.currentUser = fileManager.loadCurrentUser();
+        this.partialBlockLog = new HashMap<>();
         for(TwitterEvent e : partialLog)
         {
             if(!hasEveryoneRec(e) && e instanceof BlockEvent)
@@ -61,11 +62,11 @@ public class SiteState implements ISiteState
     {
         if(e.getIsBlocking())
         {
-            blockUser(e.getOriginatorId(), e.getIdToBlock());
+            blockUser(e.getIdToBlock(),e.getOriginatorId());
         }
         else
         {
-            unblockUser(e.getOriginatorId(), e.getIdToBlock());
+            unblockUser(e.getIdToBlock(), e.getOriginatorId());
         }
     }
 
@@ -117,7 +118,8 @@ public class SiteState implements ISiteState
         ArrayList<Tweet> tweets = new ArrayList<Tweet>();
         for(Tweet tweet : tweetSet)
         {
-            if(isBlockedBy(currentUser.getId(), tweet.getOriginatorId()))
+            System.out.println("u" + currentUser.getId() + "t" + tweet.getOriginatorId());
+            if(!isBlockedBy(currentUser.getId(), tweet.getOriginatorId()))
             {
                 tweets.add(tweet);
             }
@@ -169,15 +171,20 @@ public class SiteState implements ISiteState
 
     private void cleanPartialLog()
     {
+        HashSet<TwitterEvent> removeList = new HashSet<>();
         for(TwitterEvent e : partialLog)
         {
             if(hasEveryoneRec(e))
             {
-                partialLog.remove(e);
-                if(e instanceof BlockEvent)
-                {
-                    tryRemovePartialBlockLogEntry((BlockEvent) e);
-                }
+                removeList.add(e);
+            }
+        }
+        for(TwitterEvent e : removeList)
+        {
+            partialLog.remove(e);
+            if(e instanceof BlockEvent)
+            {
+                tryRemovePartialBlockLogEntry((BlockEvent) e);
             }
         }
     }
@@ -253,8 +260,12 @@ public class SiteState implements ISiteState
         {
             return true;
         }
+        if(!isBlockedBy(dest,e.getOriginatorId()))
+        {
+            return true;
+        }
         BlockEvent b = getPartialBlockEntry(e.getOriginatorId(),dest);
-        return (!b.getIsBlocking() || b.getLogicalTimeStamp() < e.getLogicalTimeStamp());
+        return (b!= null && (!b.getIsBlocking() || b.getLogicalTimeStamp() < e.getLogicalTimeStamp()));
     }
 
     public int getUserId()

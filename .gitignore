@@ -5,3 +5,5 @@ workspace.xml
 out/production
 .idea/workspace.xml
 out
+.idea/artifacts
+src/META-INF/

@@ -2,6 +2,7 @@ package Networking;
 
 import Models.TwitterMessage;
 
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -9,13 +10,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class MainListenerRunnable implements Runnable
 {
     private int port;
+    private InetAddress serverAddr;
     private ConcurrentLinkedQueue<TwitterMessage> eventQueue;
     boolean continueRunning = true;
 
-    public MainListenerRunnable(int port, ConcurrentLinkedQueue<TwitterMessage> eventQueue)
+    public MainListenerRunnable(int port, ConcurrentLinkedQueue<TwitterMessage> eventQueue, InetAddress serverAddr)
     {
         this.port = port;
         this.eventQueue = eventQueue;
+        this.serverAddr = serverAddr;
     }
 
     private void tryCloseSocket(ServerSocket serverSocket)
@@ -35,7 +38,7 @@ public class MainListenerRunnable implements Runnable
         ServerSocket serverSocket;
         try
         {
-            serverSocket = new ServerSocket(port);
+            serverSocket = new ServerSocket(port,0,serverAddr);
         }
         catch(Exception e)
         {

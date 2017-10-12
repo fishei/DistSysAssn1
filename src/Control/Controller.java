@@ -1,5 +1,6 @@
 package Control;
 
+import CommandLine.ICommandLineParser;
 import Networking.INetworkingProvider;
 import Models.*;
 import FileManagement.IFileManager;
@@ -19,14 +20,15 @@ public class Controller
     private ConcurrentLinkedQueue<TwitterCommand> commandQueue;
     private HashMap<String, User> userNames;
     private HashMap<Integer, User> userIds;
+    private ICommandLineParser cmdParser;
 
-    public Controller(INetworkingProvider networkingProvider, IFileManager fileManager)
+    public Controller(INetworkingProvider networkingProvider, IFileManager fileManager, ICommandLineParser cmdParser)
     {
+        this.cmdParser = cmdParser;
         this.networkingProvider = networkingProvider;
         this.siteState = new SiteState(fileManager);
         this.messageQueue = new ConcurrentLinkedQueue<>();
         this.commandQueue = new ConcurrentLinkedQueue<>();
-        networkingProvider.listenForMessages(messageQueue);
         this.userNames = new HashMap<>();
         for(User user : fileManager.loadUsers().values())
         {
@@ -37,36 +39,37 @@ public class Controller
 
     private void processTweet(String text)
     {
-        siteState.incrementLocalClock();
         Tweet tweet = new Tweet(
                  siteState.getUserId()
-                ,siteState.getLocalClock()
+                ,siteState.getLocalClock() + 1
                 ,text
                 , DateTime.now(DateTimeZone.UTC)
         );
         siteState.onTwitterEvent(tweet);
+        siteState.incrementLocalClock();
         siteState.saveToDisk();
         sendMessages();
     }
 
-    private void processCommand(BlockCommand b) {
+    private void processBlockCommand(BlockCommand b) {
         if(!userNames.containsKey(b.getUserName()))
         {
             System.out.println("Invalid username: " + b.getUserName());
             return;
         }
-        siteState.incrementLocalClock();
         BlockEvent e = new BlockEvent(
                  siteState.getUserId()
-                ,siteState.getLocalClock()
+                ,siteState.getLocalClock() + 1
                 ,userNames.get(b.getUserName()).getId()
                 ,b.isBlockOrUnblock()
         );
         siteState.onTwitterEvent(e);
+        siteState.incrementLocalClock();
         siteState.saveToDisk();
     }
-    private void processCommand(ViewCommand v)
+    private void processViewCommand(ViewCommand v)
     {
+        System.out.println(siteState.getTweets().size() + " tweets:");
         viewTweets();
     }
 
@@ -76,6 +79,7 @@ public class Controller
         String timeStampString = tweet.getUtcTimeStamp().toString("dd/MM/yy hh:mm:ss");
         return userName + " at " + timeStampString + ": " + tweet.getText();
     }
+
     private void viewTweets()
     {
         for(Tweet tweet : siteState.getTweets())
@@ -92,9 +96,29 @@ public class Controller
         }
     }
 
+    private void processTweetCommand(TweetCommand tweetCommand)
+    {
+        processTweet(tweetCommand.getText());
+    }
+
     protected void processCommand(TwitterCommand command)
     {
-        System.out.println("Invalid command");
+        if(command instanceof TweetCommand)
+        {
+            processTweetCommand((TweetCommand) command);
+        }
+        else if (command instanceof BlockCommand)
+        {
+            processBlockCommand((BlockCommand) command);
+        }
+        else if (command instanceof ViewCommand)
+        {
+            processViewCommand((ViewCommand) command);
+        }
+        else
+        {
+            System.out.println("Invalid command");
+        }
     }
 
     protected void processMessage(TwitterMessage message)
@@ -109,15 +133,17 @@ public class Controller
 
     public void run()
     {
+        networkingProvider.listenForMessages(messageQueue);
+        cmdParser.listenForCommands(commandQueue);
         while(true)
         {
-            if(commandQueue.isEmpty())
+            if(!commandQueue.isEmpty())
             {
-                processMessage(messageQueue.poll());
+                processCommand(commandQueue.poll());
             }
             else if(!messageQueue.isEmpty())
             {
-                processCommand(commandQueue.poll());
+                processMessage(messageQueue.poll());
             }
         }
     }

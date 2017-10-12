@@ -91,11 +91,13 @@ public class CommandListenerRunnable implements Runnable
     public void run()
     {
         Scanner sc = new Scanner(System.in);
+        String line;
         while(true)
         {
-            if(sc.hasNextLine())
+            if(sc.hasNext())
             {
-                processCommand(sc.nextLine());
+                line = sc.nextLine();
+                processCommand(line);
             }
         }
     }
