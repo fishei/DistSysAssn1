@@ -2,385 +2,381 @@ package FileManagement;
 
 import Models.BlockEvent;
 import Models.Tweet;
-
-import java.io.*;
-import java.net.InetAddress;
-import java.nio.file.Files;
-import java.util.*;
-
 import Models.TwitterEvent;
 import Models.User;
 import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 
+import java.io.*;
+import java.net.InetAddress;
+import java.util.*;
+
+/*
+    partial IFileManager implementation that loads an initial state every time
+    this means that BasicFileManager treats every startup like an initial startup
+    (as opposed to a recovery from a site crash)
+*/
 public class FileManager implements IFileManager
 {
-    int n;
+    public static final String tweetsFile = "tweets.txt";
+    public static final String userFile = "users.txt";
+    public static final String clockFile = "clocks.txt";
+    public static final String partialLogFile = "partialLog.txt";
+    public static final String blockListFile = "blockList.txt";
+    public static final String dateFormat = "DDDhhmmss";
 
-    public static final String fileDirectory = "../../../data/";
-    public static final String tweetFile = fileDirectory + "tweets.txt";
-    public static final String ClockFile = fileDirectory + "siteClocks.txt";
-    public static final String BlockFile = fileDirectory + "blockList.txt";
-    public static final String PlFile = fileDirectory + "partialLog.txt";
-    public static final String UserFile =  fileDirectory + "users.txt";
+    private int userId;
+    private String dataDirectory;
 
-    private int currentUserId;
-    private Map<Integer, User> UserList = null;
+    private HashMap<Integer, User> userMap;
+    private HashMap<Integer, InetAddress> addressMap;
 
-    public FileManager(int currentUserId)
+    public FileManager(int userId, String dataDirectory)
     {
-        this.currentUserId = currentUserId;
+        this.userId = userId;
+        this.dataDirectory = dataDirectory;
+        this.userMap = null;
+        this.addressMap = null;
     }
 
-    BufferedReader r = null;
-    FileWriter w = null;
-
-    private Map<Integer, User> getUserList(){
-        if(UserList == null){
-            UserList = loadUsers();
-        }
-        return  UserList;
-    }
-
-    public Collection<Tweet> loadTweets() {
-        Collection<Tweet> result = new ArrayList<Tweet>();
-
-        try {
-            r = new BufferedReader(new FileReader(tweetFile));
-            String userTweets = "";
-            while ((userTweets = r.readLine()) != null){
-                String[] tweetsData = userTweets.split(";");
-                int m = Integer.parseInt(tweetsData[0]);
-                for(int i =1; i< tweetsData.length; i++){
-                    String[] tweetData = tweetsData[i].split(",");
-                    int lTS = Integer.parseInt(tweetData[0]);
-                    DateTime TS = new DateTime(tweetData[2]);
-
-                    Tweet nT = new Tweet(m, lTS, tweetData[1], TS);
-                    result.add(nT);
-                }
-            }
-        }
-        catch (FileNotFoundException e){
-            //create file
-        }
-        catch (IOException e){
-            //error handaling
-        }
-        if(r != null){
-            try{
-                r.close();
-            }
-            catch (IOException e){
-                //error hanaling
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Map<Integer, Map<Integer, Integer>> loadClocks() {
-        Map<Integer, Map<Integer, Integer>> result = new HashMap<Integer, Map<Integer, Integer>>();
-        Map<Integer, User> UL = getUserList();
-
-        try {
-            r = new BufferedReader(new FileReader(ClockFile));
-            String row = "";
-            int i = 0;
-            while ((row = r.readLine()) != null){
-                Map <Integer, Integer> subMap = new HashMap<Integer, Integer>();
-                String[] timeStamps = row.split(";");
-                for(int j =0; j < n; j++){
-                    int timestamp = Integer.parseInt(timeStamps[j]);
-                    subMap.put(UL.get(j).getId(), timestamp);
-                }
-                result.put(UL.get(i).getId(), subMap);
-                i++;
-            }
-        }
-        catch (FileNotFoundException e){
-            for(int i = 0; i < n; i++){
-                Map <Integer, Integer> subMap = new HashMap<Integer, Integer>();
-                for(int j = 0; j < n; j++){
-                    subMap.put(UL.get(j).getId(), 0);
-                }
-                result.put(UL.get(i).getId(), subMap);
-            }
-        }
-        catch (IOException e){
-            //error handaling
-        }
-        if(r != null){
-            try{
-                r.close();
-            }
-            catch (IOException e){
-                //error hanaling
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Map<Integer, Set<Integer>> loadBlockList() {
-        Map<Integer, Set<Integer>> result = new HashMap<Integer, Set<Integer>>();
-        Map<Integer, User> UL = getUserList();
-
-        try {
-            r = new BufferedReader(new FileReader(BlockFile));
-            String uBlock = "";
-            int i = 0;
-            while ((uBlock = r.readLine()) != null){
-                Set <Integer> BlockList = new HashSet<Integer>();
-
-                String[] Blocks = uBlock.split(";");
-                for(int j = 0; j < Blocks.length ; j++){
-                    int Block = Integer.parseInt(Blocks[j]);
-                    BlockList.add(Block);
-                }
-                result.put(UL.get(i).getId(), BlockList);
-                i++;
-            }
-        }
-        catch (FileNotFoundException e){
-            for(int i = 0; i < n; i++){
-                Set<Integer> temp = new HashSet<Integer>();
-                result.put(UL.get(i).getId(), temp);
-            }
-        }
-        catch (IOException e){
-            //error handaling
-        }
-        if(r != null){
-            try{
-                r.close();
-            }
-            catch (IOException e){
-                //error hanaling
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public Collection<TwitterEvent> loadPartialLog() {
-        Collection<TwitterEvent> result = new ArrayList<TwitterEvent>();
-
-        try {
-            r = new BufferedReader(new FileReader(PlFile));
-            String userEvents = "";
-            int m = 0;
-            while ((userEvents = r.readLine()) != null){
-                String[] EventsData = userEvents.split(";");
-                for(int i =0; i< EventsData.length; i++){
-                    TwitterEvent nE = parseTwitterEvent(EventsData[i]);
-                    result.add(nE);
-                }
-                m++;
-            }
-        }
-        catch (FileNotFoundException e){
-            //create file
-        }
-        catch (IOException e){
-            //error handaling
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        if(r != null){
-            try{
-                r.close();
-            }
-            catch (IOException e){
-                //error hanaling
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public void updatePartialLog(Collection<TwitterEvent> newPartialLog) {
-
-    }
-
-    @Override
-    public void addTweet(Tweet tweet) {
-        int target = tweet.getOriginatorId();
-        Collection<Tweet> oldTweets = loadTweets();
-
-        //delete old file and create new one
-
-        try{
-            w = new FileWriter(tweetFile);
-
-            Iterator<Tweet> tweetList = oldTweets.iterator();
-            int currID = -1;
-            String row = "";
-
-            while (tweetList.hasNext()){
-                Tweet currTweet = tweetList.next();
-
-                if(currID < 0){
-                    currID = currTweet.getOriginatorId();
-                }
-                else if(currID != currTweet.getOriginatorId()){
-                    if(currID == target){
-                        row += tweet.getLogicalTimeStamp()+","+tweet.getText()+","+tweet.getUtcTimeStamp()+";";
-                    }
-
-                    w.write(row);
-                    row = "";
-                    currID = currTweet.getOriginatorId();
-                }
-
-                row += currTweet.getLogicalTimeStamp()+","+currTweet.getText()+","+currTweet.getUtcTimeStamp()+";";
-
-            }
-        }
-        catch (IOException e){
-
-        }
-    }
-
-    private TwitterEvent parseTwitterEvent(String eventString) throws Exception
+    private BufferedWriter getBufferedWriter(String fileName, boolean append)
     {
-        String[] eventArray = eventString.split(",");
-        int originatorId = Integer.parseInt(eventArray[0]);
-        int logicalTimeStamp = Integer.parseInt(eventArray[1]);
-        if(eventArray[2].equals("tweet"))
-        {
-            return new Tweet(
-                     originatorId
-                    ,logicalTimeStamp
-                    ,eventArray[3]
-                    ,DateTime.parse(eventArray[4])
-            );
-        }
-        else if(eventArray[2].equals("block"))
-        {
-            return new BlockEvent(
-                     originatorId
-                    ,logicalTimeStamp
-                    ,Integer.parseInt(eventArray[3])
-                    ,true
-            );
-        }
-        else if(eventArray[2].equals("unblock"))
-        {
-            return new BlockEvent(
-                    originatorId
-                    ,logicalTimeStamp
-                    ,Integer.parseInt(eventArray[3])
-                    ,false
-            );
-        }
-        else
-        {
-            throw new Exception("Invalid event type: " + eventArray[2]);
-
-        }
-    }
-
-    @Override
-    public void updateBlockList(HashMap<Integer, HashSet<Integer>> newBlockList) {
-        //delete old file and create new one
-
         try{
-            w = new FileWriter(BlockFile);
-
-            for(int i = 0; i < newBlockList.size(); i++){
-                String row = "";
-
-                Set<Integer> sublist = newBlockList.get(i);
-                Iterator<Integer> listB = sublist.iterator();
-                while(listB.hasNext()){
-                    row += listB.next()+";";
-                }
-                w.write(row);
-            }
+            FileWriter fileWriter = new FileWriter(dataDirectory + "/" + fileName, append);
+            return new BufferedWriter(fileWriter);
         }
-        catch (IOException e){
-
+        catch(IOException e)
+        {
+            System.out.println("Error opening " + fileName + " for writing");
+            return null;
+        }
+    }
+    private BufferedReader getBufferedReader(String fileName)
+    {
+        try
+        {
+            FileReader fileReader = new FileReader(dataDirectory + "/" + fileName);
+            return new BufferedReader(fileReader);
+        }
+        catch(FileNotFoundException fileNotFoundException)
+        {
+            return null;
         }
     }
 
+    private void ioError(String fileName)
+    {
+        System.out.println("Error reading " + fileName);
+    }
+
+    public Collection<Tweet> loadTweets()
+    {
+        ArrayList<Tweet> tweets = new ArrayList<Tweet>();
+        BufferedReader bufferedReader = getBufferedReader(tweetsFile);
+        if(bufferedReader == null)
+        {
+            return tweets;
+        }
+        String line;
+        try{
+            while((line = bufferedReader.readLine()) != null) {
+                tweets.add(parseTweet(line));
+            }
+            return tweets;
+        }
+        catch(IOException ioException)
+        {
+            ioError(tweetsFile);
+            return null;
+        }
+    }
+
+    private Tweet parseTweet(String tweetFileLine)
+    {
+        String[] tweetArray = tweetFileLine.split(",");
+        int userId = Integer.valueOf(tweetArray[0]);
+        int logicalTimeStamp = Integer.valueOf(tweetArray[1]);
+        DateTime utcTimeStamp = DateTime.parse(tweetArray[3], DateTimeFormat.forPattern(dateFormat));
+        return new Tweet(userId,logicalTimeStamp,tweetArray[2],utcTimeStamp);
+    }
+
+    /* loads map of site clocks from disk if present, else initialize map with all clocks at zero */
+    public Map<Integer, Map<Integer,Integer>> loadClocks()
+    {
+        HashMap<Integer,Map<Integer,Integer>> clocks = new HashMap<>();
+        BufferedReader bufferedReader = getBufferedReader(clockFile);
+        if(bufferedReader == null)
+        {
+            return initializeClocks();
+        }
+        String line;
+        try{
+            while((line = bufferedReader.readLine()) != null)
+            {
+                parseClocksLine(line, clocks);
+            }
+            return clocks;
+        }
+        catch(IOException e)
+        {
+            ioError(clockFile);
+            return null;
+        }
+    }
+
+    private void parseClocksLine(String line, Map<Integer,Map<Integer,Integer>> clocks)
+    {
+        String[] arr1 = line.split(";");
+        int userId = Integer.valueOf(arr1[0]);
+        HashMap<Integer,Integer> subMap = new HashMap<>();
+        for(int i = 1; i< arr1.length; i++)
+        {
+            String[] arr2 = arr1[i].split(",");
+            subMap.put(Integer.valueOf(arr2[0]),Integer.valueOf(arr2[1]));
+        }
+        clocks.put(userId, subMap);
+    }
+
+    private Map<Integer,Map<Integer,Integer>> initializeClocks()
+    {
+        HashMap<Integer,Map<Integer,Integer>> clocks = new HashMap<>();
+        for(int i : loadUsers().keySet())
+        {
+            HashMap<Integer,Integer> subMap = new HashMap<>();
+            for(int j: loadUsers().keySet())
+            {
+                subMap.put(j,0);
+            }
+            clocks.put(i,subMap);
+        }
+        return clocks;
+    }
+
+    /* loads blocklist from disk if present, else returtn empty collection */
+    public Map<Integer, Set<Integer>> loadBlockList()
+    {
+        Map<Integer, Set<Integer>> blockList = new HashMap<Integer, Set<Integer>>();
+        BufferedReader bufferedReader = getBufferedReader(blockListFile);
+        if(bufferedReader == null)
+        {
+            return blockList;
+        }
+        String line;
+        try{
+            while((line = bufferedReader.readLine()) != null)
+            {
+                parseBlockListLine(line, blockList);
+            }
+            return blockList;
+        }
+        catch(IOException e)
+        {
+            ioError(blockListFile);
+            return null;
+        }
+    }
+
+    private void parseBlockListLine(String line, Map<Integer,Set<Integer>> blockList)
+    {
+        String[] lineArray = line.split(",");
+        HashSet<Integer> blockSet = new HashSet<>();
+        int userId = Integer.valueOf(lineArray[0]);
+        for(int i = 1; i<lineArray.length; i++)
+        {
+            blockSet.add(Integer.valueOf(lineArray[i]));
+        }
+        blockList.put(userId, blockSet);
+    }
+
+    /* loads partial log from disk if present, else return empty collection */
+    public Collection<TwitterEvent> loadPartialLog()
+    {
+        ArrayList<TwitterEvent> partialLog = new ArrayList<TwitterEvent>();
+        BufferedReader bufferedReader = getBufferedReader(partialLogFile);
+        if(bufferedReader == null)
+        {
+            return partialLog;
+        }
+        String line;
+        try{
+            while((line = bufferedReader.readLine()) != null) {
+                partialLog.add(parsePartialLogEntry(line));
+            }
+            return partialLog;
+        }
+        catch(IOException ioException)
+        {
+            ioError(partialLogFile);
+            return null;
+        }
+    }
+
+    private TwitterEvent parsePartialLogEntry(String line)
+    {
+        String[] lineArray = line.split(",");
+        int userId = Integer.valueOf(lineArray[0]);
+        int logicalTimeStamp = Integer.valueOf(lineArray[1]);
+        if(lineArray[2].equals("tweet"))
+        {
+            return new Tweet(userId, logicalTimeStamp, lineArray[3],DateTime.parse(lineArray[4]));
+        }
+        else if(lineArray[2].equals("block"))
+        {
+            return new BlockEvent(userId, logicalTimeStamp, Integer.valueOf(lineArray[3]), true);
+        }
+        else if(lineArray[2].equals("unblock"))
+        {
+            return new BlockEvent(userId, logicalTimeStamp, Integer.valueOf(lineArray[3]), false);
+        }
+        else return null;
+    }
+
+    /* eras
+    es the old partial log file if it exists and replaces it with a new one constructed from newPartialLog */
+    public void updatePartialLog(Collection<TwitterEvent> newPartialLog)
+    {
+        BufferedWriter bufferedWriter = getBufferedWriter(partialLogFile, false);
+        try
+        {
+            for(TwitterEvent event : newPartialLog)
+            {
+                writePartialLogEntry(event, bufferedWriter);
+            }
+            bufferedWriter.close();
+        }
+        catch(IOException e)
+        {
+            System.out.println("Error writing to " + partialLogFile);
+        }
+    }
+
+    private void writePartialLogEntry(TwitterEvent event, BufferedWriter bufferedWriter) throws IOException
+    {
+        bufferedWriter.write(event.getOriginatorId() + "," + event.getLogicalTimeStamp());
+        if(event instanceof BlockEvent)
+        {
+            BlockEvent blockEvent = (BlockEvent) event;
+            String typeString = (blockEvent.getIsBlocking() ? "block" : "unblock");
+            bufferedWriter.write("," + typeString + "," + blockEvent.getIdToBlock());
+        }
+        else if(event instanceof Tweet)
+        {
+            Tweet tweet = (Tweet) event;
+            bufferedWriter.write(",tweet," + tweet.getText() + "," + tweet.getUtcTimeStamp().toString(dateFormat));
+        }
+        bufferedWriter.write("\n");
+    }
+
+    /* saves the tweet to disk, creates new file if necessary */
+    public void addTweet(Tweet tweet)
+    {
+        BufferedWriter bufferedWriter = getBufferedWriter(tweetsFile, true);
+        try
+        {
+            bufferedWriter.write(
+                    tweet.getOriginatorId()
+                    + ","
+                    + tweet.getLogicalTimeStamp()
+                    + ","
+                    + tweet.getText()
+                    + ","
+                    + tweet.getUtcTimeStamp().toString(dateFormat)
+                    + "\n"
+            );
+            bufferedWriter.close();
+        }
+        catch(IOException e)
+        {
+            System.out.println("Error writing to " + tweetsFile);
+        }
+    }
+
+    /* erases old blockList if present, saves newBlockList to file */
+    public void updateBlockList(HashMap<Integer, HashSet<Integer>> newBlockList)
+    {
+        BufferedWriter bufferedWriter = getBufferedWriter(blockListFile, false);
+        try {
+            for(Map.Entry<Integer, HashSet<Integer>> entry : newBlockList.entrySet())
+            {
+                String line = Integer.toString(entry.getKey());
+                for(int i : entry.getValue())
+                {
+                    line = line + "," + Integer.toString(i);
+                }
+                bufferedWriter.write(line + "\n");
+            }
+            bufferedWriter.close();
+        }
+        catch(IOException e)
+        {
+            System.out.println("Error writing to " + blockListFile);
+        }
+    }
+
+    /* loads the current user from config file */
     public User loadCurrentUser(){
-        Map<Integer, User> UL = getUserList();
-        return (UL.get(currentUserId));
+        return loadUsers().get(userId);
     }
 
-    @Override
-    public Map<Integer, User> loadUsers() {
-        Map<Integer, User> result = new HashMap<Integer, User>();
+    /* loads list of userIds and their corresponding ip addresses from a config file */
+    public Map<Integer, InetAddress> loadAddresses()
+    {
+        if(addressMap == null)
+        {
+            parseUserFile();
+        }
+        return new HashMap<>(addressMap);
+    }
 
+    /* load list of userIds and the corresponding user objects */
+    public Map<Integer, User> loadUsers()
+    {
+        if(userMap == null)
+        {
+            parseUserFile();
+        }
+        return new HashMap<>(userMap);
+    }
+
+    private void parseUserFile()
+    {
+        BufferedReader bufferedReader = getBufferedReader(userFile);
+        userMap = new HashMap<>();
+        addressMap = new HashMap<>();
+        String line;
+        try{
+            while((line = bufferedReader.readLine()) != null)
+            {
+                String[] lineArray = line.split(",");
+                int userId = Integer.valueOf(lineArray[0]);
+                userMap.put(userId, new User(lineArray[1], userId));
+                addressMap.put(userId, InetAddress.getByName(lineArray[2]));
+            }
+        }
+        catch(Exception e)
+        {
+            ioError(userFile);
+        }
+    }
+
+    public void updateClocks(HashMap<Integer,HashMap<Integer,Integer>> clocks)
+    {
+        BufferedWriter bufferedWriter = getBufferedWriter(clockFile, false);
         try {
-            r = new BufferedReader(new FileReader(UserFile));
-            String userData = "";
-            while ((userData = r.readLine()) != null){
-                String[] CurrData = userData.split(",");
-                int currID = Integer.parseInt(CurrData[0]);
-                User currUser = new User(CurrData[1], currID);
-
-                //is this right?
-                result.put(currID, currUser);
+            for(HashMap.Entry<Integer,HashMap<Integer,Integer>> entry : clocks.entrySet())
+            {
+                String line = entry.getKey() + ";";
+                for(HashMap.Entry<Integer,Integer> subEntry : entry.getValue().entrySet())
+                {
+                    line = line  + subEntry.getKey() + "," + subEntry.getValue() + ";";
+                }
+                bufferedWriter.write(line + "\n");
             }
+            bufferedWriter.close();
         }
-        catch (FileNotFoundException e){
-            //create file
+        catch(Exception e)
+        {
+            System.out.println("Error writing to " + clockFile);
         }
-        catch (IOException e){
-            //error handaling
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        if(r != null){
-            try{
-                r.close();
-            }
-            catch (IOException e){
-                //error hanaling
-            }
-        }
-
-        UserList = result;
-        return result;
-    }
-
-    @Override
-    public Map<Integer, InetAddress> loadAddresses() {
-        Map<Integer, InetAddress> result = new HashMap<Integer, InetAddress>();
-
-        try {
-            r = new BufferedReader(new FileReader(UserFile));
-            String userData = "";
-            while ((userData = r.readLine()) != null){
-                String[] CurrData = userData.split(",");
-                int currID = Integer.parseInt(CurrData[0]);
-                InetAddress currAdd = InetAddress.getByName(CurrData[2]);
-
-                result.put(currID, currAdd);
-            }
-        }
-        catch (FileNotFoundException e){
-            //create file
-        }
-        catch (IOException e){
-            //error handaling
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        if(r != null){
-            try{
-                r.close();
-            }
-            catch (IOException e){
-                //error hanaling
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public void updateClocks(HashMap<Integer, HashMap<Integer, Integer>> clocks) {
-        
     }
 }

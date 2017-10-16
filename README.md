@@ -2,11 +2,11 @@ Distributed Twitter
 
 FILE STRUCTURES:
 
-tweets.txt:	<userId>; <logical timestamp>,<tweet text>,<UTC timestamp>; <logical timestamp>,<tweet text>,<utc timestamp>; ...
+tweets.txt:	<userId>,<logical timestamp>,<tweet text>,<UTC timestamp>
 
 clocks.txt:	<userId>; <userId>,<time>; <userId>,<time>; ...
 
-blockList.txt:	<userId>; <userId>, <userId>,...
+blockList.txt:	<userId>, <userId>, <userId>,...
 
 partialLog.txt:	<userID>,<logical timestamp>,<event data>
 		where <event data> 	 = <type=tweet>,<text>,<utc timestamp>

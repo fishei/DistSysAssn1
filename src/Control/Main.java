@@ -11,9 +11,9 @@ import Networking.NetworkProvider;
 
 public class Main
 {
-    public static IFileManager buildFileManager(int i)
+    public static IFileManager buildFileManager(int i, String dir)
     {
-        return new FileManager(i);
+        return new FileManager(i, dir);
     }
 
     public static ICommandLineParser buildCommandLineParser()
@@ -23,7 +23,7 @@ public class Main
     public static void main(String [] args)
     {
         ICommandLineParser parser = buildCommandLineParser();
-        IFileManager fileManager = buildFileManager(Integer.parseInt(args[0]));
+        IFileManager fileManager = buildFileManager(Integer.parseInt(args[0]), args[1]);
         INetworkingProvider networkingProvider = new NetworkProvider(fileManager);
         Controller controller = new Controller(networkingProvider,fileManager, parser);
         controller.run();

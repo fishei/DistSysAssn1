@@ -72,6 +72,10 @@ public class SiteState implements ISiteState
 
     private void unblockUser(int userId, int blockerId)
     {
+        if(!isBlockedBy(userId,blockerId))
+        {
+            return;
+        }
         blockList.get(blockerId).remove(userId);
         if(blockList.get(blockerId).isEmpty())
         {
@@ -110,7 +114,8 @@ public class SiteState implements ISiteState
 
     public boolean hasRec(TwitterEvent e, int siteId)
     {
-        return siteClocks.get(siteId).get(e.getOriginatorId()) >= e.getLogicalTimeStamp();
+        boolean ret =  siteClocks.get(siteId).get(e.getOriginatorId()) >= e.getLogicalTimeStamp();
+        return ret;
     }
 
     public Collection<Tweet> getTweets()
@@ -118,7 +123,6 @@ public class SiteState implements ISiteState
         ArrayList<Tweet> tweets = new ArrayList<Tweet>();
         for(Tweet tweet : tweetSet)
         {
-            System.out.println("u" + currentUser.getId() + "t" + tweet.getOriginatorId());
             if(!isBlockedBy(currentUser.getId(), tweet.getOriginatorId()))
             {
                 tweets.add(tweet);
@@ -234,10 +238,10 @@ public class SiteState implements ISiteState
         {
             partialBlockLog.put(e.getOriginatorId(), new HashMap<Integer,BlockEvent>());
         }
-        BlockEvent prevEvent = subLog.get(e.getIdToBlock());
+        BlockEvent prevEvent = partialBlockLog.get(e.getOriginatorId()).get(e.getIdToBlock());
         if(prevEvent == null || prevEvent.getLogicalTimeStamp() < e.getLogicalTimeStamp())
         {
-            subLog.put(e.getIdToBlock(), e);
+            partialBlockLog.get(e.getOriginatorId()).put(e.getIdToBlock(), e);
         }
     }
 
@@ -280,7 +284,7 @@ public class SiteState implements ISiteState
         for(int i : siteClocks.keySet())
         {
             Collection<TwitterEvent> events = getEventsForMessage(i);
-            if(events !=null)
+            if(events != null)
             {
                 TwitterMessage msg = new TwitterMessage();
                 msg.eventList = events;

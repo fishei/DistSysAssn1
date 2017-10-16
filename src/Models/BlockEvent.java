@@ -8,6 +8,7 @@ public class BlockEvent extends TwitterEvent
     public BlockEvent(int originatorId, int localTimeStamp, int idToBlock, boolean isBlocking)
     {
         super(originatorId, localTimeStamp);
+        this.idToBlock = idToBlock;
         this.isBlocking = isBlocking;
     }
 
