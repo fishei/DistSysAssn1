@@ -36,7 +36,7 @@ public class FileManager implements IFileManager
 
     private Map<Integer, User> getUserList(){
         if(UserList == null){
-            loadUsers();
+            UserList = loadUsers();
         }
         return  UserList;
     }
