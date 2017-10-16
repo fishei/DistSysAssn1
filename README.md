@@ -14,3 +14,5 @@ partialLog.txt:	<userID>,<logical timestamp>,<event data>
 			  		 = <unblock>,<userId>
 
 users.txt: 	<userId>,<userName>,<ip address>
+
+usage: java -jar DistributedTwitter.jar <userId> <dataDirectory>
